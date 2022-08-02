@@ -1,5 +1,6 @@
 use cosmwasm_std::{
-    debug_print, to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier,
+    //debug_print, 
+    to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier,
     StdError, StdResult, Storage,
 };
 
@@ -18,7 +19,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 
     config(&mut deps.storage).save(&state)?;
 
-    debug_print!("Contract was initialized by {}", env.message.sender);
+    // debug_print!("Contract was initialized by {}", env.message.sender);
 
     Ok(InitResponse::default())
 }
@@ -40,11 +41,11 @@ pub fn try_increment<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     config(&mut deps.storage).update(|mut state| {
         state.count += 1;
-        debug_print!("count = {}", state.count);
+        // debug_print!("count = {}", state.count);
         Ok(state)
     })?;
 
-    debug_print("count incremented successfully");
+    // debug_print("count incremented successfully");
     Ok(HandleResponse::default())
 }
 
@@ -61,7 +62,7 @@ pub fn try_reset<S: Storage, A: Api, Q: Querier>(
         state.count = count;
         Ok(state)
     })?;
-    debug_print("count reset successfully");
+    // debug_print("count reset successfully");
     Ok(HandleResponse::default())
 }
 
