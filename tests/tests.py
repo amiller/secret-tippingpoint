@@ -33,7 +33,7 @@ def runcmd(cmd, canFail = False):
     print(result.stdout.decode("utf8"))
     if fail and not canFail:
       os._exit(-1)
-  return result.stdout.decode("utf8")
+  return fail, result.stdout.decode("utf8")
 
 
 def randomHexStr(len=10):
@@ -46,7 +46,7 @@ def changeWallet(seed=None):
   runcmd("secretcli config keyring-backend test")
   runcmd("secretcli config broadcast-mode block")
   runcmd("secretcli keys delete SecretIDE-Deployment -y", True)
-  data = runcmd(f"echo '{seed}' | secretcli keys add SecretIDE-Deployment --recover || exit 1")
+  _, data = runcmd(f"echo '{seed}' | secretcli keys add SecretIDE-Deployment --recover || exit 1")
   address = json.loads(data)['address'].strip()
   return address  
 
@@ -54,38 +54,88 @@ def publishAndInitContract(name, /, *, params='{"counter": 100000}', path=PROJEC
   addr = changeWallet(seed)
   os.chdir(PROJECT_PATH)
   runcmd("make build")
-  codeId = runcmd("secretcli tx compute store contract.wasm.gz --from SecretIDE-Deployment --gas 772380 -y")
+  _, codeId = runcmd("secretcli tx compute store contract.wasm.gz --from SecretIDE-Deployment --gas 2000000 -y")
   codeId = json.loads(codeId.strip())['logs'][0]['events'][0]['attributes'][3]['value']
   print(f"Contract stored successfully! Code ID: {codeId}")
-  contractAddress = runcmd(f"secretcli tx compute instantiate {codeId} '{params}' --label '{name}' --from 'SecretIDE-Deployment' -y")
+  _, contractAddress = runcmd(f"secretcli tx compute instantiate {codeId} '{params}' --label '{name}' --from 'SecretIDE-Deployment' -y")
   contractAddress = json.loads(contractAddress.strip())['logs'][0]['events'][0]['attributes'][4]['value']
   return codeId, contractAddress
 
 def queryContract(contractAddress, functionName, arg={}):
-  rv = runcmd(f"secretcli query compute query {contractAddress} '{{\"{functionName}\":{json.dumps(arg)}}}'")
-  return json.loads(rv)
+  err, rv = runcmd(f"secretcli query compute query {contractAddress} '{{\"{functionName}\":{json.dumps(arg)}}}'", True)
+  if not err:
+    return json.loads(rv)
+  else:
+    return rv
 
 def executeContract(contractAddress, functionName, arg={}, /, *, caller=walletAdress):
-  rv = runcmd(f"secretcli tx compute execute {contractAddress} '{{\"{functionName}\":{json.dumps(arg)}}}' --from '{caller}' -y")
-  return json.loads(rv)
+  err, rv = runcmd(f"secretcli tx compute execute {contractAddress} '{{\"{functionName}\":{json.dumps(arg)}}}' --from '{caller}' -y", True)
+  if not err:
+    return json.loads(rv)
+  else:
+    return rv
 
+#
 
-
-
-def exampleTest():
+def testCreation():
   name = randomHexStr()
   id, addr = publishAndInitContract(name, params='{"count": 100000}')
-  rv = queryContract(addr, 'get_count')
-  assert(rv['count'] == 100000)
-  rv = executeContract(addr, 'increment')
-  rv = queryContract(addr, 'get_count')
-  assert(rv['count'] == 100001)
-  rv = executeContract(addr, 'reset', {'count': 1234})
-  rv = queryContract(addr, 'get_count')
-  assert(rv['count'] == 1234)
-  rv = executeContract(addr, 'increment')
-  rv = queryContract(addr, 'get_count')
-  assert(rv['count'] == 1235)
+  rv = queryContract(addr, 'get_count', {'id': 1})
+  assert rv == ""
+  rv = executeContract(addr, 'create', {'id': 1})
+  rv = queryContract(addr, 'get_count', {'id': 1})
+  assert(rv['count'] == 0)
+  rv = queryContract(addr, 'get_count', {'id': 0})
+  assert rv == ""
+  rv = queryContract(addr, 'get_count', {'id': 2})
+  assert rv == ""
+  rv = executeContract(addr, 'create', {'id': 0})
+  rv = queryContract(addr, 'get_count', {'id': 0})
+  assert(rv['count'] == 0)
+  rv = executeContract(addr, 'create', {'id': 2})
+  rv = queryContract(addr, 'get_count', {'id': 2})
+  assert(rv['count'] == 0)
+
+  # Double creation:
+  #
+  rv = executeContract(addr, 'create', {'id': 0})
+  assert rv['code'] == 3
+
+  # UNDONE():
+  # Non leader creation:
+  #
+  
+def testIncrement():
+  name = randomHexStr()
+  id, addr = publishAndInitContract(name, params='{"count": 100000}')
+  assert executeContract(addr, 'create', {'id': 1})['code'] == 0
+  assert executeContract(addr, 'create', {'id': 0})['code'] == 0
+  assert queryContract(addr, 'get_count', {'id': 0})['count'] == 0
+  assert queryContract(addr, 'get_count', {'id': 1})['count'] == 0
+  rv = executeContract(addr, 'increment', {'id': 1})
+  assert rv['code'] == 0
+  assert queryContract(addr, 'get_count', {'id': 0})['count'] == 0
+  assert queryContract(addr, 'get_count', {'id': 1})['count'] == 1
+
+  rv = executeContract(addr, 'increment', {'id': 0})
+  assert rv['code'] == 0
+  assert queryContract(addr, 'get_count', {'id': 0})['count'] == 1
+  assert queryContract(addr, 'get_count', {'id': 1})['count'] == 1
+
+  assert executeContract(addr, 'create', {'id': 2})['code'] == 0
+  assert executeContract(addr, 'create', {'id': 3})['code'] == 0
+  assert queryContract(addr, 'get_count', {'id': 2})['count'] == 0
+  assert queryContract(addr, 'get_count', {'id': 3})['count'] == 0
+  rv = executeContract(addr, 'increment', {'id': 2})
+  assert rv['code'] == 0
+  rv = executeContract(addr, 'increment', {'id': 3})
+  assert rv['code'] == 0
+
+  assert queryContract(addr, 'get_count', {'id': 0})['count'] == 1
+  assert queryContract(addr, 'get_count', {'id': 1})['count'] == 1
+  assert queryContract(addr, 'get_count', {'id': 2})['count'] == 1
+  assert queryContract(addr, 'get_count', {'id': 3})['count'] == 1
 
 if __name__ == "__main__":
-  exampleTest()
+  testCreation()
+  testIncrement()
