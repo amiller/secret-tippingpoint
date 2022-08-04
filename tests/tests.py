@@ -16,7 +16,6 @@ walletName3 = 'USER3'
 
 PROJECT_PATH = "./"
 
-from gc import get_count
 import subprocess
 import sys
 import os
@@ -65,7 +64,7 @@ def CreateWallet(seed, name):
   address = json.loads(data)['address'].strip()
   return address  
 
-def publishAndInitContract(name, /, *, params='{"counter": 100000}', path=PROJECT_PATH, walletName=walletName1):
+def publishAndInitContract(name, /, *, params='{}', path=PROJECT_PATH, walletName=walletName1):
   os.chdir(PROJECT_PATH)
   runcmd("make build")
   _, codeId = runcmd(f"secretcli tx compute store contract.wasm.gz --from {walletName} --gas 2000000 -y")
