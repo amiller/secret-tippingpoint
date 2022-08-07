@@ -17,6 +17,15 @@ const medteeDef = {
       };
       return { handleMsg };
     },
+
+    addSymptom(ctx, batchid, token) {
+      console.log(ctx)
+      console.log(batchid)
+      console.log(token)
+      return { add_symptom: {'symptom_token': token, 'batch_id': batchid} }
+    },
+
+    // UNDONE():
     addPatient() {
       const handleMsg = {
         add_patient: {
@@ -25,12 +34,14 @@ const medteeDef = {
         }
       };
       return { handleMsg };
-    }
+    },
+
+
   },
 
   queries: {
-    checkBatch() {
-      return { check_batch: {'batch_id': 42} };
+    checkBatch(ctx, batchid) {
+      return { check_batch: {'batch_id': batchid} };
     },
     getCount() {
       return { get_count: {} };

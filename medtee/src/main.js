@@ -1,9 +1,8 @@
+import Vue from "vue";
 import { createApp, use } from 'vue';
 import App from './App.vue';
 import Buefy from 'buefy'
 import 'buefy/dist/buefy.css'
-import Vue from "vue";
-
 
 import {
   gripApp,
