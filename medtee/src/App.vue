@@ -29,6 +29,7 @@
           <div>
             <p class="heading">Batch ID:</p>
             <p class="title"> {{item.batchid}}</p>
+
           </div>
           </div>
           <div class="level-item has-text-centered">
