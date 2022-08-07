@@ -57,18 +57,23 @@
       <div class="buttons level-item has-text-centered">
         <!-- <button rounded class="button is-medium is-primary is-light" @click="createBatch">{{loading ? 'creating...' : 'Create default batch'}}</button> -->
         <!-- <button rounded class="button is-medium is-primary is-light" @click="addPatient">{{loading ? 'adding...' : 'Add patient'}}</button> -->
-        <button rounded class="button is-medium is-primary is-light" @click="getCount">Sanity test</button>
-        <button rounded class="button is-medium is-primary is-light" @click="checkBatches">Check all batches</button>
+        <button rounded class="button is-medium is-success is-light" @click="getCount">Sanity test</button>
+        <button rounded class="button is-medium is-success is-light" @click="checkBatches">Check all batches</button>
       </div>
 
       <hr>
+      <div class="inputs level-item has-text-centered">
+              <input class="input is-primary is-medium" v-model="name" placeholder="Drug name" />
+        <input class="input is-primary is-medium" v-model="batchid" placeholder="Batch id" />
+        <input class="input is-primary is-medium" v-model="token" placeholder="User token given by pharmacy" />
+
+      </div>
+      <br>
+
 
       <div class="buttons level-item has-text-centered">
-        <input v-model="name" placeholder="Drug name" />
-        <input v-model="batchid" placeholder="Batch id" />
-        <input v-model="token" placeholder="User token given by pharmacy" />
-        <button rounded class="button is-medium is-primary is-light" @click="addBatch">{{loading ? 'loading...' : 'Track a new batch'}}</button>
-        <button rounded class="button is-medium is-primary is-light" @click="addSymptom">{{loading ? 'loading...' : 'Mark symptom'}}</button>
+        <button rounded class="button is-medium is-info is-light" @click="addBatch">{{loading ? 'loading...' : 'Track a new batch'}}</button>
+        <button rounded class="button is-medium is-info is-light" @click="addSymptom">{{loading ? 'loading...' : 'Mark symptom'}}</button>
       </div>
     </div>
 
