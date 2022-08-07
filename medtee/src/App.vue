@@ -22,49 +22,63 @@
         </button>
       </div>
       <br>
+
       <hr>
-      <nav class="level is-mobile">
-      <div class="level-item has-text-centered">
-          <div>
-            <p class="heading">Your count is: </p>
-            <p class="title">{{count}}</p>
-          </div>
-          </div>
+      <nav class="level is-mobile" v-for="item in items">
           <div class="level-item has-text-centered">
           <div>
             <p class="heading">Batch ID:</p>
-            <p class="title"> 42</p>
-          </div>
-          </div>
-          <div class="level-item has-text-centered">
-          <div>
-            <p class="heading">Data:</p>
-            <p class="title"> Dummy Data </p>
-          </div>
-          </div>
+            <p class="title"> {{item.batchid}}</p>
 
+          </div>
+          </div>
           <div class="level-item has-text-centered">
           <div>
-            <p class="heading">threshold reached?: </p>
-            <p class="title"> {{threshold_reached}}</p>
+            <p class="heading">Name:</p>
+            <p class="title"> {{item.name}}</p>
+          </div>
+          </div>
+          <div class="level-item has-text-centered">
+          <div>
+            <p class="heading">Threshold reached?: </p>
+            <p class="title"> {{item.threshold_reached}}</p>
           </div>
           </div>
           <div class="level-item has-text-centered">
           <div>
             <p class="heading">locations:  </p>
-            <p class="title">{{locations}}</p>
+            <p class="title">{{item.locations}}</p>
           </div>
-          </div>
+        </div>
+      
       </nav>
       <!-- <button @click="incrementCount">{{loading ? 'Loading...' : 'Increment by 1'}}</button> -->
       <hr>
       <div class="buttons level-item has-text-centered">
-        <button rounded class="button is-medium is-primary is-light" @click="createBatch">{{loading ? 'creating...' : 'Create default batch'}}</button>
-        <button rounded class="button is-medium is-primary is-light" @click="addPatient">{{loading ? 'adding...' : 'Add patient'}}</button>
-        <button rounded class="button is-medium is-primary is-light" @click="getCount">Get count</button>
-        <button rounded class="button is-medium is-primary is-light" @click="checkBatch">Check batch</button>
+        <!-- <button rounded class="button is-medium is-primary is-light" @click="createBatch">{{loading ? 'creating...' : 'Create default batch'}}</button> -->
+        <!-- <button rounded class="button is-medium is-primary is-light" @click="addPatient">{{loading ? 'adding...' : 'Add patient'}}</button> -->
+        <button rounded class="button is-medium is-primary is-light" @click="getCount">Sanity test</button>
+        <button rounded class="button is-medium is-primary is-light" @click="checkBatches">Check all batches</button>
+      </div>
+
+      <hr>
+
+      <div class="buttons level-item has-text-centered">
+        <input v-model="name" placeholder="Drug name" />
+        <input v-model="batchid" placeholder="Batch id" />
+        <input v-model="token" placeholder="User token given by pharmacy" />
+        <button rounded class="button is-medium is-primary is-light" @click="addBatch">{{loading ? 'loading...' : 'Track a new batch'}}</button>
+        <button rounded class="button is-medium is-primary is-light" @click="addSymptom">{{loading ? 'loading...' : 'Mark symptom'}}</button>
       </div>
     </div>
+
+
+    <hr>
+      <div class="level-item has-text-centered">
+      <div>
+        <p class="heading">Sanity test: {{count}}</p>
+      </div>
+      </div>
   </div>
 </template>
 
@@ -77,8 +91,13 @@ export default {
 
   data: () => ({
     count: '',
-    locations: [],
-    threshold_reached: false,
+    items: [{
+      batchid: 42,
+      name: "Blue pill",
+      token: 42,
+      locations: [],
+      threshold_reached: false
+    }],
     loading: false,
     isConnected: false,
     removeOnAccountAvailable:null
@@ -87,24 +106,31 @@ export default {
     this.removeOnAccountAvailable = onAccountAvailable(()=>{
       this.isConnected= true;
     })
+
+    this.checkBatches();
   },
   unmounted(){
     this.removeOnAccountAvailable()
   },
   methods: {
-    async checkBatch() {
-      console.log("checking batch ...");
-      const response = await counterContract.checkBatch();
-      console.log("got response: ", response);
-      this.locations = response.locations;
-      console.log("this.locations: ", this.locations);
-      this.threshold_reached = response.threshold_reached;
-      console.log("this.threshold_reached: ", this.threshold_reached);
+    async checkBatches() {
+
+      for (var item of this.items) {
+        console.log("checking batch ...");
+        console.log(item);
+        const response = await counterContract.checkBatch(item.batchid);
+        console.log("got response: ", response);
+        item.locations = response.locations;
+        console.log("this.locations: ", this.locations);
+        item.threshold_reached = response.threshold_reached;
+        console.log("this.threshold_reached: ", this.threshold_reached);
+      }
     },
     async getCount() {
       const response = await counterContract.getCount();
       
       this.count = response.count;
+      this.loading = false;
     },
     async connect() {
       await bootstrap();
@@ -113,6 +139,41 @@ export default {
     async createBatch() {
       this.loading = true;
       await counterContract.createBatch();
+      this.loading = false;
+    },
+
+
+    async addBatch() {
+      this.loading = true;
+      var batchid = parseInt(this.batchid);
+      var name = this.name;
+      var token = parseInt(this.token);
+      this.loading = false;
+      console.log(batchid)
+      this.items.push({
+        batchid: batchid,
+        name: name,
+        token: token,
+        locations: [],
+        threshold_reached: false
+      })
+    },
+
+    async addSymptom() {
+      var batchid = parseInt(this.batchid);
+      this.loading = true;
+
+      var name = "";
+      var token = 0;
+      for (var item of this.items) {
+        if (item.batchid == batchid) {
+          name = item.name;
+          token = item.token;
+          break;
+        }
+      }
+      console.log(batchid, token)
+      await counterContract.addSymptom(batchid, token)
       this.loading = false;
     },
 
